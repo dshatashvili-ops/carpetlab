@@ -50,7 +50,7 @@ export function planAny(sources: Source[], requests: Request[], minRemnantSideCm
 
     if (used) {
       for (const fr of free) {
-        if (fr.w >= minRemnantSideCm && fr.h >= minRemnantSideCm) remnants.push({ sourceId: src.id, widthCm: fr.w, lengthCm: fr.h });
+        if (fr.w >= minRemnantSideCm && fr.h >= minRemnantSideCm) remnants.push({ sourceId: src.id, widthCm: fr.w, lengthCm: fr.h, xCm: fr.x, yCm: fr.y });
       }
     }
     pending = unplaced;

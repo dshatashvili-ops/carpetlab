@@ -61,7 +61,15 @@ describe('planAny', () => {
         const left = plan.remnants.filter((r) => r.sourceId === s.id).reduce((acc, r) => acc + r.widthCm * r.lengthCm, 0);
         expect(used + left).toBeLessThanOrEqual(s.widthCm * s.lengthCm);
       }
-      for (const r of plan.remnants) { expect(r.widthCm).toBeGreaterThanOrEqual(30); expect(r.lengthCm).toBeGreaterThanOrEqual(30); }
+      for (const r of plan.remnants) {
+        expect(r.widthCm).toBeGreaterThanOrEqual(30); expect(r.lengthCm).toBeGreaterThanOrEqual(30);
+        const s = bySource.get(r.sourceId)!;
+        expect(r.xCm).toBeGreaterThanOrEqual(0); expect(r.yCm).toBeGreaterThanOrEqual(0);
+        expect(r.xCm + r.widthCm).toBeLessThanOrEqual(s.widthCm); expect(r.yCm + r.lengthCm).toBeLessThanOrEqual(s.lengthCm);
+        const asPlacement: Placement = { sourceId: r.sourceId, sizeId: 'rem', xCm: r.xCm, yCm: r.yCm, widthCm: r.widthCm, lengthCm: r.lengthCm };
+        for (const p of plan.placements) if (p.sourceId === r.sourceId) expect(overlap(p, asPlacement)).toBe(false);
+        for (const o of plan.remnants) if (o !== r && o.sourceId === r.sourceId) expect(overlap({ ...asPlacement }, { sourceId: o.sourceId, sizeId: 'rem', xCm: o.xCm, yCm: o.yCm, widthCm: o.widthCm, lengthCm: o.lengthCm })).toBe(false);
+      }
       const placed = new Map<string, number>();
       plan.placements.forEach((p) => placed.set(p.sizeId, (placed.get(p.sizeId) ?? 0) + 1));
       for (const r of requests) expect((placed.get(r.sizeId) ?? 0) + (plan.shortfall.find((s) => s.sizeId === r.sizeId)?.missing ?? 0)).toBe(r.qty);

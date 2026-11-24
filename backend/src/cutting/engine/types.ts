@@ -2,7 +2,7 @@
 export type Source = { id: string; kind: 'ROLL' | 'REMNANT'; widthCm: number; lengthCm: number };
 export type Request = { sizeId: string; widthCm: number; lengthCm: number; qty: number };
 export type Placement = { sourceId: string; sizeId: string; xCm: number; yCm: number; widthCm: number; lengthCm: number };
-export type RemnantOut = { sourceId: string; widthCm: number; lengthCm: number };
+export type RemnantOut = { sourceId: string; widthCm: number; lengthCm: number; xCm: number; yCm: number };
 export type CutPlan = {
   feasible: boolean;
   placements: Placement[];

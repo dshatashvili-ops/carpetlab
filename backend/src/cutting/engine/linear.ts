@@ -36,7 +36,7 @@ export function planLinear(sources: Source[], requests: Request[], minRemnantSid
         }
       }
       const gap = src.widthCm - x;
-      if (gap > 0 && big(gap, stripLen)) gaps.push({ sourceId: src.id, widthCm: gap, lengthCm: stripLen });
+      if (gap > 0 && big(gap, stripLen)) gaps.push({ sourceId: src.id, widthCm: gap, lengthCm: stripLen, xCm: x, yCm: y });
       y += stripLen;
       remaining -= stripLen;
       used = true;
@@ -44,7 +44,7 @@ export function planLinear(sources: Source[], requests: Request[], minRemnantSid
 
     if (used) {
       remnants.push(...gaps);
-      if (remaining > 0 && big(src.widthCm, remaining)) remnants.push({ sourceId: src.id, widthCm: src.widthCm, lengthCm: remaining });
+      if (remaining > 0 && big(src.widthCm, remaining)) remnants.push({ sourceId: src.id, widthCm: src.widthCm, lengthCm: remaining, xCm: 0, yCm: y });
     }
   }
 

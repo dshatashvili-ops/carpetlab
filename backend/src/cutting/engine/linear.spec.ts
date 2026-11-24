@@ -10,7 +10,7 @@ describe('planLinear', () => {
     const plan = planLinear([roll()], [req('s300', 150, 300, 8)], 30);
     expect(plan.feasible).toBe(true);
     expect(plan.placements).toHaveLength(8);
-    expect(plan.remnants).toEqual([{ sourceId: 'r1', widthCm: 150, lengthCm: 100 }]);
+    expect(plan.remnants).toEqual([{ sourceId: 'r1', widthCm: 150, lengthCm: 100, xCm: 0, yCm: 2400 }]);
     expect(plan.shortfall).toEqual([]);
   });
 
@@ -49,7 +49,11 @@ describe('planLinear', () => {
     const plan = planLinear([roll('r1', 150, 500)], [req('s', 100, 200, 2)], 30);
     expect(plan.feasible).toBe(true);
     expect(plan.placements.map((p) => [p.xCm, p.yCm])).toEqual([[0, 0], [0, 200]]);
-    expect(plan.remnants).toEqual(expect.arrayContaining([{ sourceId: 'r1', widthCm: 50, lengthCm: 200 }, { sourceId: 'r1', widthCm: 150, lengthCm: 100 }]));
+    expect(plan.remnants).toEqual(expect.arrayContaining([
+      { sourceId: 'r1', widthCm: 50, lengthCm: 200, xCm: 100, yCm: 0 },
+      { sourceId: 'r1', widthCm: 50, lengthCm: 200, xCm: 100, yCm: 200 },
+      { sourceId: 'r1', widthCm: 150, lengthCm: 100, xCm: 0, yCm: 400 },
+    ]));
   });
 
   it('pieces of equal length share a strip across the width', () => {

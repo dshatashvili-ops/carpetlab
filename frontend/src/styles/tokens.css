@@ -1,0 +1,40 @@
+/* «Мастерская»: тёмно-синие чернила, светлая бумага, один оранжево-красный акцент. */
+:root {
+  --ink: #12203a;
+  --paper: #f1f3f5;
+  --panel: #fbfcfd;
+  --text: #12203a;
+  --muted: #566178;
+  --line: #cfd6df;
+  --line-strong: #9aa7b8;
+  --grid: #e3e8ee;
+  --accent: #d9461f;
+  --accent-fg: #ffffff;
+  --ok: #1b7a4a;
+  --warn: #9a5b00;
+  --size-1: #2d4a7a;
+  --size-2: #5b7fb5;
+  --size-3: #a9bddb;
+  --size-text: #ffffff;
+  --size-text-light: #12203a;
+  --nav-bg: #12203a;
+  --nav-fg: #ffffff;
+  --radius: 2px;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #e8edf6; --paper: #0f1624; --panel: #16203a; --text: #e8edf6; --muted: #9aa8c0;
+    --line: #2a3654; --line-strong: #4a5a80; --grid: #18223a; --accent: #ff6b45; --accent-fg: #1a0a04;
+    --ok: #5fd39a; --warn: #f0b24a; --size-1: #4b78c2; --size-2: #3b5f9c; --size-3: #7f9bd0;
+    --size-text: #ffffff; --size-text-light: #0f1624; --nav-bg: #0a1020; --nav-fg: #e8edf6; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #e8edf6; --paper: #0f1624; --panel: #16203a; --text: #e8edf6; --muted: #9aa8c0;
+  --line: #2a3654; --line-strong: #4a5a80; --grid: #18223a; --accent: #ff6b45; --accent-fg: #1a0a04;
+  --ok: #5fd39a; --warn: #f0b24a; --size-1: #4b78c2; --size-2: #3b5f9c; --size-3: #7f9bd0;
+  --size-text: #ffffff; --size-text-light: #0f1624; --nav-bg: #0a1020; --nav-fg: #e8edf6; color-scheme: dark;
+}
