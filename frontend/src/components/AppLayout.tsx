@@ -8,6 +8,8 @@ const NAV: { to: string; label: string; roles?: Role[] }[] = [
   { to: '/app/sizes', label: 'Размеры' },
   { to: '/app/stock', label: 'Склад' },
   { to: '/app/cutting', label: 'Раскрой' },
+  { to: '/app/documents', label: 'Документы' },
+  { to: '/app/problems', label: 'Проблемные остатки' },
 ];
 
 export function AppLayout() {

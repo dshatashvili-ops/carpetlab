@@ -6,6 +6,9 @@ import { AppLayout } from './components/AppLayout';
 import { AppHome } from './pages/AppHome';
 import { Articles } from './pages/Articles';
 import { Cutting } from './pages/Cutting';
+import { DocumentView } from './pages/DocumentView';
+import { Documents } from './pages/Documents';
+import { Problems } from './pages/Problems';
 import { Sizes } from './pages/Sizes';
 import { Stock } from './pages/Stock';
 import { Demo } from './pages/Demo';
@@ -45,6 +48,9 @@ export function AppRoutes() {
           <Route path="sizes" element={<Sizes />} />
           <Route path="stock" element={<Stock />} />
           <Route path="cutting" element={<Cutting />} />
+          <Route path="documents" element={<Documents />} />
+          <Route path="documents/:id" element={<DocumentView />} />
+          <Route path="problems" element={<Problems />} />
         </Route>
       </Routes>
     </SessionProvider>
