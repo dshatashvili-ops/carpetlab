@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BarcodesService } from '../barcodes/barcodes.service';
 import { PrismaService } from '../common/prisma.service';
 import { runInTenant, Tx } from '../common/tenant-context';
 import { CalcInput, CalculationService, materialIdOf } from '../cutting/calculation.service';
@@ -8,7 +9,7 @@ export interface Actor { orgId: string; userId: string }
 
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly prisma: PrismaService, private readonly calc: CalculationService, private readonly ledger: LedgerService) {}
+  constructor(private readonly prisma: PrismaService, private readonly calc: CalculationService, private readonly ledger: LedgerService, private readonly barcodes: BarcodesService) {}
 
   async execute(actor: Actor, input: CalcInput): Promise<{ id: string; number: number; version: number; status: string; articleId: string }> {
     const { orgId, userId } = actor;
@@ -54,7 +55,7 @@ export class DocumentsService {
           movements.push({ orgId, userId, documentId: doc.id, kind: 'RECEIPT', itemType: 'MATERIAL', materialId: material.id, qtyDelta: count });
         }
         for (const [sizeId, qty] of outputBySize) {
-          const sku = (await tx.sku.findUnique({ where: { articleId_sizeId: { articleId, sizeId } } })) ?? (await tx.sku.create({ data: { orgId, articleId, sizeId } }));
+          const sku = await this.barcodes.ensureSku(tx, orgId, articleId, sizeId, { strict: false });
           movements.push({ orgId, userId, documentId: doc.id, kind: 'CUT_OUTPUT', itemType: 'CARPET', skuId: sku.id, qtyDelta: qty });
         }
         await this.ledger.post(tx, movements);

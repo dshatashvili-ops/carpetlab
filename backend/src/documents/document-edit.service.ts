@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CutDocument, Prisma } from '@prisma/client';
+import { BarcodesService } from '../barcodes/barcodes.service';
 import { PrismaService } from '../common/prisma.service';
 import { runInTenant, Tx } from '../common/tenant-context';
 import { LedgerService, NewMovement } from '../stock/ledger.service';
@@ -24,7 +25,7 @@ const isDim = (n: unknown): n is number => Number.isInteger(n) && (n as number) 
 
 @Injectable()
 export class DocumentEditService {
-  constructor(private readonly prisma: PrismaService, private readonly ledger: LedgerService) {}
+  constructor(private readonly prisma: PrismaService, private readonly ledger: LedgerService, private readonly barcodes: BarcodesService) {}
 
   async edit(actor: Actor, id: string, input: EditInput): Promise<{ id: string; number: number; version: number; status: string; articleId: string; warnings: ConflictWarning[] }> {
     const { orgId, userId } = actor;
@@ -116,7 +117,7 @@ export class DocumentEditService {
     const outputs: DocState['outputs'] = [];
     for (const [sizeId, qty] of perSize) {
       const size = sizes.find((s) => s.id === sizeId)!;
-      const sku = (await tx.sku.findUnique({ where: { articleId_sizeId: { articleId: doc.articleId, sizeId } } })) ?? (await tx.sku.create({ data: { orgId: doc.orgId, articleId: doc.articleId, sizeId } }));
+      const sku = await this.barcodes.ensureSku(tx, doc.orgId, doc.articleId, sizeId, { strict: false });
       outputs.push({ skuId: sku.id, sizeId, widthCm: size.widthCm, lengthCm: size.lengthCm, qty });
     }
     const consumed = input.consumed ? input.consumed.filter((c) => c.qty > 0).map((c) => ({ materialId: c.materialId, qty: c.qty })) : before.consumed;
