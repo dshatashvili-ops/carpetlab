@@ -4,12 +4,19 @@ import { PrismaClient } from '@prisma/client';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/configure-app';
 import { Mailer } from '../../src/common/mailer';
+import { ObjectStorage } from '../../src/common/storage';
 
 export class FakeMailer extends Mailer {
   sent: { to: string; subject: string; html: string }[] = [];
   async send(to: string, subject: string, html: string): Promise<void> {
     this.sent.push({ to, subject, html });
   }
+}
+
+export class MemoryStorage extends ObjectStorage {
+  files = new Map<string, Buffer>();
+  async put(key: string, buf: Buffer): Promise<void> { this.files.set(key, buf); }
+  async delete(key: string): Promise<void> { this.files.delete(key); }
 }
 
 export const admin = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_ADMIN_URL } } });
@@ -22,7 +29,7 @@ export async function resetDb(): Promise<void> {
 
 export async function createTestApp(): Promise<{ app: INestApplication; mailer: FakeMailer }> {
   const mailer = new FakeMailer();
-  const mod = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(Mailer).useValue(mailer).compile();
+  const mod = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(Mailer).useValue(mailer).overrideProvider(ObjectStorage).useValue(new MemoryStorage()).compile();
   const app = mod.createNestApplication();
   configureApp(app);
   await app.init();
