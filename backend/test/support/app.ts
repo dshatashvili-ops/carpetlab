@@ -5,6 +5,7 @@ import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/configure-app';
 import { Mailer } from '../../src/common/mailer';
 import { ObjectStorage } from '../../src/common/storage';
+import { YooKassaClient } from '../../src/subscription/payments/yookassa.client';
 
 export class FakeMailer extends Mailer {
   sent: { to: string; subject: string; html: string }[] = [];
@@ -19,6 +20,24 @@ export class MemoryStorage extends ObjectStorage {
   async delete(key: string): Promise<void> { this.files.delete(key); }
 }
 
+export class FakeYooKassa extends YooKassaClient {
+  payments = new Map<string, string>();
+  created: { amountKopecks: number; description: string }[] = [];
+  getCalls = 0;
+  private n = 0;
+  async createPayment(input: { amountKopecks: number; description: string; returnUrl: string; idempotenceKey: string }) {
+    const id = `yk-${++this.n}`;
+    this.payments.set(id, 'pending');
+    this.created.push({ amountKopecks: input.amountKopecks, description: input.description });
+    return { id, confirmationUrl: `https://pay.example/confirm/${id}` };
+  }
+  async getPayment(id: string): Promise<{ id: string; status: 'pending' | 'succeeded' | 'canceled' } | null> {
+    this.getCalls++;
+    const status = this.payments.get(id);
+    return status ? { id, status: status as 'pending' | 'succeeded' | 'canceled' } : null;
+  }
+}
+
 export const admin = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_ADMIN_URL } } });
 
 export async function resetDb(): Promise<void> {
@@ -27,13 +46,14 @@ export async function resetDb(): Promise<void> {
   );
 }
 
-export async function createTestApp(): Promise<{ app: INestApplication; mailer: FakeMailer }> {
+export async function createTestApp(): Promise<{ app: INestApplication; mailer: FakeMailer; yookassa: FakeYooKassa }> {
   const mailer = new FakeMailer();
-  const mod = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(Mailer).useValue(mailer).overrideProvider(ObjectStorage).useValue(new MemoryStorage()).compile();
+  const yookassa = new FakeYooKassa();
+  const mod = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(Mailer).useValue(mailer).overrideProvider(ObjectStorage).useValue(new MemoryStorage()).overrideProvider(YooKassaClient).useValue(yookassa).compile();
   const app = mod.createNestApplication();
   configureApp(app);
   await app.init();
-  return { app, mailer };
+  return { app, mailer, yookassa };
 }
 
 import request from 'supertest';
