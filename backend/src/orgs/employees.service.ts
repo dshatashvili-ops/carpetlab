@@ -3,13 +3,14 @@ import { Role } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
 import { Mailer } from '../common/mailer';
 import { PrismaService } from '../common/prisma.service';
+import { LimitsService } from '../subscription/limits.service';
 
 const ROLES: Role[] = ['OWNER', 'OPERATOR', 'CUTTER'];
 const sha256 = (s: string): string => createHash('sha256').update(s).digest('hex');
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly prisma: PrismaService, private readonly mailer: Mailer) {}
+  constructor(private readonly prisma: PrismaService, private readonly mailer: Mailer, private readonly limits: LimitsService) {}
 
   async invite(orgId: string, emailRaw: string, role: Role): Promise<void> {
     const email = (emailRaw ?? '').trim().toLowerCase();
@@ -17,6 +18,7 @@ export class EmployeesService {
     if (!ROLES.includes(role)) throw new BadRequestException('Неизвестная роль');
     const existing = await this.prisma.membership.findFirst({ where: { orgId, user: { email } } });
     if (existing) throw new ConflictException('Этот сотрудник уже в организации');
+    await this.limits.assertCanAdd(orgId, 'employee');
     const token = randomBytes(24).toString('hex');
     await this.prisma.emailToken.create({
       data: { kind: 'INVITE', email, orgId, role, tokenHash: sha256(token), expiresAt: new Date(Date.now() + 7 * 86_400_000) },
