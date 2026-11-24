@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MaterialKind } from '@prisma/client';
+import { MaterialKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
 import { runInTenant } from '../common/tenant-context';
 
@@ -33,9 +33,13 @@ export class BalanceService {
     });
   }
 
-  carpets(orgId: string, filter: { articleId?: string } = {}): Promise<CarpetBalance[]> {
+  carpets(orgId: string, filter: { articleId?: string; q?: string; ean?: string } = {}): Promise<CarpetBalance[]> {
     return runInTenant(this.prisma, orgId, async (tx) => {
-      const skus = await tx.sku.findMany({ where: filter.articleId ? { articleId: filter.articleId } : {} });
+      const where: Prisma.SkuWhereInput = {};
+      if (filter.articleId) where.articleId = filter.articleId;
+      if (filter.ean) where.ean13 = filter.ean;
+      if (filter.q) where.articleId = { in: (await tx.article.findMany({ where: { OR: [{ code: { contains: filter.q, mode: 'insensitive' } }, { name: { contains: filter.q, mode: 'insensitive' } }] }, select: { id: true } })).map((a) => a.id) };
+      const skus = await tx.sku.findMany({ where });
       if (skus.length === 0) return [];
       const [sums, articles, sizes] = await Promise.all([
         tx.stockMovement.groupBy({ by: ['skuId'], _sum: { qtyDelta: true }, where: { skuId: { in: skus.map((s) => s.id) } } }),

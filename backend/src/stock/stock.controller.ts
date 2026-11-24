@@ -23,7 +23,7 @@ export class StockController {
   materials(@Req() req: Request, @Query('articleId') articleId?: string) { return this.balances.materials(req.auth!.orgId, articleId); }
 
   @Get('carpets')
-  carpets(@Req() req: Request, @Query('articleId') articleId?: string) { return this.balances.carpets(req.auth!.orgId, { articleId }); }
+  carpets(@Req() req: Request, @Query('articleId') articleId?: string, @Query('q') q?: string, @Query('ean') ean?: string) { return this.balances.carpets(req.auth!.orgId, { articleId, q, ean }); }
 
   @Get('problems')
   problems(@Req() req: Request) { return this.balances.problems(req.auth!.orgId); }
