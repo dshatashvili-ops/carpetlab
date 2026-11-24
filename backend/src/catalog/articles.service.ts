@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../common/prisma.service';
 import { ObjectStorage } from '../common/storage';
 import { runInTenant } from '../common/tenant-context';
+import { BalanceService } from '../stock/balance.service';
 import { LimitsService } from '../subscription/limits.service';
 
 export interface ArticleInput {
@@ -44,7 +45,7 @@ function clean(input: ArticleInput, partial: boolean): Prisma.ArticleUncheckedUp
 
 @Injectable()
 export class ArticlesService {
-  constructor(private readonly prisma: PrismaService, private readonly limits: LimitsService, private readonly storage: ObjectStorage) {}
+  constructor(private readonly prisma: PrismaService, private readonly limits: LimitsService, private readonly storage: ObjectStorage, private readonly balances: BalanceService) {}
 
   async create(orgId: string, input: ArticleInput): Promise<Article> {
     const data = clean(input, false) as Prisma.ArticleUncheckedCreateInput;
@@ -54,9 +55,12 @@ export class ArticlesService {
     } catch (e) { throw this.mapUnique(e); }
   }
 
-  list(orgId: string, q?: string): Promise<Article[]> {
+  async list(orgId: string, q?: string, stock?: string): Promise<Article[]> {
     const where: Prisma.ArticleWhereInput = q ? { OR: [{ code: { contains: q, mode: 'insensitive' } }, { name: { contains: q, mode: 'insensitive' } }] } : {};
-    return runInTenant(this.prisma, orgId, (tx) => tx.article.findMany({ where, orderBy: { code: 'asc' } }));
+    const rows = await runInTenant(this.prisma, orgId, (tx) => tx.article.findMany({ where, orderBy: { code: 'asc' } }));
+    if (stock !== 'inStock' && stock !== 'empty') return rows;
+    const inStock = await this.balances.articleIdsInStock(orgId);
+    return rows.filter((a) => (stock === 'inStock') === inStock.has(a.id));
   }
 
   async get(orgId: string, id: string): Promise<Article> {

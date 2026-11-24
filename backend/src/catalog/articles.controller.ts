@@ -12,7 +12,7 @@ export class ArticlesController {
   create(@Req() req: Request, @Body() body: ArticleInput) { return this.articles.create(req.auth!.orgId, body); }
 
   @Get()
-  list(@Req() req: Request, @Query('q') q?: string) { return this.articles.list(req.auth!.orgId, q); }
+  list(@Req() req: Request, @Query('q') q?: string, @Query('stock') stock?: string) { return this.articles.list(req.auth!.orgId, q, stock); }
 
   @Get(':id')
   get(@Req() req: Request, @Param('id', ParseUUIDPipe) id: string) { return this.articles.get(req.auth!.orgId, id); }
