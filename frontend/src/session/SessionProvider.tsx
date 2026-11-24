@@ -45,3 +45,9 @@ export function useSession(): SessionValue {
   if (!v) throw new Error('useSession must be used inside SessionProvider');
   return v;
 }
+
+/** Owners and operators may write, and only while the subscription is active (after it ends the cabinet is read-only). */
+export function useCanEdit(): boolean {
+  const { user, subscription } = useSession();
+  return !!user && user.role !== 'CUTTER' && subscription?.status !== 'EXPIRED';
+}

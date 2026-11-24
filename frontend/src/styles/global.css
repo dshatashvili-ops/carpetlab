@@ -43,3 +43,13 @@ table.data th, table.data td { text-align: left; padding: 8px 10px; border-botto
 table.data th { font-weight: 600; color: var(--muted); }
 .table-scroll { overflow-x: auto; }
 .footer { padding-block: 32px; color: var(--muted); font-size: 13px; }
+.app-shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+.app-side { background: var(--nav-bg); color: var(--nav-fg); padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.app-side nav { display: grid; gap: 4px; flex: 1; align-content: start; }
+.app-side nav a { color: inherit; text-decoration: none; padding: 8px 10px; border-radius: var(--radius); opacity: .85; }
+.app-side nav a:hover, .app-side nav a.active { background: rgba(255,255,255,.1); opacity: 1; }
+.app-side .btn.ghost { color: var(--nav-fg); border-color: rgba(255,255,255,.4); }
+.app-main { padding: 8px max(16px, env(safe-area-inset-right, 0px)) 40px 24px; min-width: 0; }
+.banner { padding: 10px 14px; margin-top: 12px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--panel); }
+.banner.warning { border-color: var(--warn); } .banner.expired { border-color: var(--accent); }
+@media (max-width: 760px) { .app-shell { grid-template-columns: 1fr; } .app-side { flex-direction: row; flex-wrap: wrap; align-items: center; } .app-side nav { display: flex; flex-wrap: wrap; } }
