@@ -25,6 +25,9 @@ export class StockController {
   @Get('carpets')
   carpets(@Req() req: Request, @Query('articleId') articleId?: string) { return this.balances.carpets(req.auth!.orgId, { articleId }); }
 
+  @Get('problems')
+  problems(@Req() req: Request) { return this.balances.problems(req.auth!.orgId); }
+
   @Get('history')
   history(@Req() req: Request, @Query('itemId', ParseUUIDPipe) itemId: string) { return this.stock.history(req.auth!.orgId, itemId); }
 }

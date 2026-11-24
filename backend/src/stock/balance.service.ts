@@ -54,6 +54,29 @@ export class BalanceService {
     });
   }
 
+  /** Items whose balance went below zero (e.g. after an edit that conflicts with later documents). */
+  problems(orgId: string): Promise<Record<string, unknown>[]> {
+    return runInTenant(this.prisma, orgId, async (tx) => {
+      const sums = await tx.stockMovement.groupBy({ by: ['materialId', 'skuId'], _sum: { qtyDelta: true } });
+      const negative = sums.filter((s) => (s._sum.qtyDelta ?? 0) < 0);
+      const out: Record<string, unknown>[] = [];
+      for (const s of negative) {
+        const where = s.materialId ? { materialId: s.materialId } : { skuId: s.skuId };
+        const docs = await tx.stockMovement.findMany({ where: { ...where, documentId: { not: null } }, select: { documentId: true } });
+        const documentIds = [...new Set(docs.map((d) => d.documentId!))];
+        if (s.materialId) {
+          const m = await tx.material.findUniqueOrThrow({ where: { id: s.materialId } });
+          out.push({ itemType: 'MATERIAL', materialId: m.id, articleId: m.articleId, kind: m.kind, widthCm: m.widthCm, lengthCm: m.lengthCm, balance: s._sum.qtyDelta, documentIds });
+        } else if (s.skuId) {
+          const k = await tx.sku.findUniqueOrThrow({ where: { id: s.skuId } });
+          const z = await tx.sizeTemplate.findUniqueOrThrow({ where: { id: k.sizeId } });
+          out.push({ itemType: 'CARPET', skuId: k.id, articleId: k.articleId, widthCm: z.widthCm, lengthCm: z.lengthCm, balance: s._sum.qtyDelta, documentIds });
+        }
+      }
+      return out;
+    });
+  }
+
   /** Ids of articles that have at least one roll or remnant in stock. */
   async articleIdsInStock(orgId: string): Promise<Set<string>> {
     const rows = await this.materials(orgId);
