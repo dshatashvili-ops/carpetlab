@@ -56,6 +56,27 @@ export class AuthService {
     return { token };
   }
 
+  async acceptInvite(tokenRaw: string, password: string): Promise<{ token: string }> {
+    const row = await this.prisma.emailToken.findUnique({ where: { tokenHash: sha256(tokenRaw ?? '') } });
+    if (!row || row.kind !== 'INVITE' || row.usedAt || row.expiresAt < new Date() || !row.orgId || !row.role) {
+      throw new BadRequestException('Приглашение недействительно или устарело');
+    }
+    let user = await this.prisma.user.findUnique({ where: { email: row.email } });
+    if (user) {
+      if (!(await argon2.verify(user.passwordHash, password ?? ''))) throw new UnauthorizedException('Неверный пароль');
+    } else {
+      if ((password ?? '').length < 10) throw new BadRequestException('Пароль должен быть не короче 10 символов');
+      user = await this.prisma.user.create({ data: { email: row.email, passwordHash: await argon2.hash(password), emailVerifiedAt: new Date() } });
+    }
+    const token = randomBytes(32).toString('hex');
+    await this.prisma.$transaction([
+      this.prisma.membership.upsert({ where: { userId_orgId: { userId: user.id, orgId: row.orgId } }, create: { userId: user.id, orgId: row.orgId, role: row.role }, update: { role: row.role } }),
+      this.prisma.emailToken.update({ where: { id: row.id }, data: { usedAt: new Date() } }),
+      this.prisma.session.create({ data: { id: sha256(token), userId: user.id, orgId: row.orgId, expiresAt: new Date(Date.now() + SESSION_DAYS * 86_400_000) } }),
+    ]);
+    return { token };
+  }
+
   async logout(token: string | undefined): Promise<void> {
     if (token) await this.prisma.session.deleteMany({ where: { id: sha256(token) } });
   }

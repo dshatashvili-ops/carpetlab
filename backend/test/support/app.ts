@@ -28,3 +28,19 @@ export async function createTestApp(): Promise<{ app: INestApplication; mailer: 
   await app.init();
   return { app, mailer };
 }
+
+import request from 'supertest';
+
+export async function registerOwner(app: INestApplication, email = 'owner@example.com'): Promise<string[]> {
+  const res = await request(app.getHttpServer()).post('/api/auth/register').send({ email, password: 'correct-horse-1', orgName: 'Ковры+' });
+  return res.headers['set-cookie'] as unknown as string[];
+}
+
+/** Invites an employee as `role`, accepts the invite and returns the employee's session cookie. */
+export async function addEmployee(app: INestApplication, mailer: FakeMailer, ownerCookie: string[], email: string, role: 'OPERATOR' | 'CUTTER'): Promise<string[]> {
+  await request(app.getHttpServer()).post('/api/employees').set('Cookie', ownerCookie).send({ email, role }).expect(201);
+  const mail = mailer.sent.filter((m) => m.to === email).pop()!;
+  const token = /token=([a-f0-9]+)/.exec(mail.html)![1];
+  const res = await request(app.getHttpServer()).post('/api/auth/accept-invite').send({ token, password: 'correct-horse-1' });
+  return res.headers['set-cookie'] as unknown as string[];
+}

@@ -24,6 +24,13 @@ export class AuthController {
     return { ok: true };
   }
 
+  @Public() @Post('accept-invite')
+  async acceptInvite(@Body() body: { token: string; password: string }, @Res({ passthrough: true }) res: Response): Promise<{ ok: true }> {
+    const { token } = await this.auth.acceptInvite(body.token, body.password);
+    res.cookie(SESSION_COOKIE, token, cookieOpts);
+    return { ok: true };
+  }
+
   @Post('logout') @HttpCode(204)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.auth.logout(req.cookies?.[SESSION_COOKIE]);
