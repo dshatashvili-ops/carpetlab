@@ -26,6 +26,7 @@ describe('expiry notifications', () => {
     expect(mailer.sent).toHaveLength(1);
     expect(mailer.sent[0].to).toBe('owner@example.com');
     expect(mailer.sent[0].subject).toContain('30');
+    expect(mailer.sent[0].html).toMatch(/https?:\/\/[^\s<"]+\/app\/billing/);
   });
 
   it('sends the 15-day notice and nothing between 14 and 8 days', async () => {

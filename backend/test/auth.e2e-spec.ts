@@ -61,6 +61,7 @@ describe('auth', () => {
 
   it('GET /verify marks the e-mail as verified', async () => {
     await request(app.getHttpServer()).post('/api/auth/register').send(creds);
+    expect(mailer.sent[0].html).toMatch(/https?:\/\/[^\s<"]+\/api\/auth\/verify\?token=[a-f0-9]+/);
     const token = /token=([a-f0-9]+)/.exec(mailer.sent[0].html)![1];
     const res = await request(app.getHttpServer()).get(`/api/auth/verify?token=${token}`);
     expect(res.status).toBe(200);

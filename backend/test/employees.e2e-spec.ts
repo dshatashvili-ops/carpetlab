@@ -17,7 +17,8 @@ describe('employees', () => {
   it('the owner invites an employee: 201 and an invitation e-mail is sent', async () => {
     const res = await request(app.getHttpServer()).post('/api/employees').set('Cookie', owner).send({ email: 'cut@example.com', role: 'CUTTER' });
     expect(res.status).toBe(201);
-    expect(mailer.sent.some((m) => m.to === 'cut@example.com')).toBe(true);
+    const mail = mailer.sent.find((m) => m.to === 'cut@example.com')!;
+    expect(mail.html).toMatch(/https?:\/\/[^\s<"]+\/accept-invite\?token=[a-f0-9]+/);
   });
 
   it('an accepted invitation gives the employee the invited role', async () => {

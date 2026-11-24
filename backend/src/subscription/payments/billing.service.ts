@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { appUrl } from '../../common/app-url';
 import { PrismaService } from '../../common/prisma.service';
 import { YooKassaClient } from './yookassa.client';
 
@@ -40,7 +41,7 @@ export class BillingService {
     }
     const created = await this.yookassa.createPayment({
       amountKopecks: price.priceKopecks, description, idempotenceKey: payment.id,
-      returnUrl: `${process.env.APP_URL ?? 'http://localhost:5173'}/app/billing`,
+      returnUrl: appUrl('/app/billing'),
     });
     await this.prisma.payment.update({ where: { id: payment.id }, data: { externalId: created.id } });
     return { paymentId: payment.id, confirmationUrl: created.confirmationUrl };

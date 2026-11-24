@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { createHash, randomBytes } from 'node:crypto';
+import { appUrl } from '../common/app-url';
 import { Mailer } from '../common/mailer';
 import { PrismaService } from '../common/prisma.service';
 import { AuthContext } from '../common/auth-context';
@@ -39,7 +40,7 @@ export class AuthService {
       await tx.session.create({ data: { id: sha256(sessionToken), userId: user.id, orgId: org.id, expiresAt: new Date(now + SESSION_DAYS * 86_400_000) } });
     });
 
-    await this.mailer.send(email, 'Подтвердите e-mail в CarpetLAB', `<p>Перейдите по ссылке: /api/auth/verify?token=${verifyToken}</p>`);
+    await this.mailer.send(email, 'Подтвердите e-mail в CarpetLAB', `<p>Подтвердите e-mail, перейдя по ссылке: <a href="${appUrl(`/api/auth/verify?token=${verifyToken}`)}">${appUrl(`/api/auth/verify?token=${verifyToken}`)}</a></p>`);
     return { token: sessionToken };
   }
 

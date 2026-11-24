@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { NoticeKind } from '@prisma/client';
+import { appUrl } from '../common/app-url';
 import { Mailer } from '../common/mailer';
 import { PrismaService } from '../common/prisma.service';
 
@@ -51,7 +52,7 @@ export class NotificationsService {
         await this.mailer.send(
           o.user.email,
           `${trial ? 'Пробный период' : 'Подписка'} CarpetLAB заканчивается через ${left} дн.`,
-          `<p>${trial ? 'Пробный период' : 'Подписка'} заканчивается ${sub.expiresAt.toLocaleDateString('ru-RU')}. После этого данные останутся, но будут доступны только для просмотра.</p><p>Продлить: /app/billing</p>`,
+          `<p>${trial ? 'Пробный период' : 'Подписка'} заканчивается ${sub.expiresAt.toLocaleDateString('ru-RU')}. После этого данные останутся, но будут доступны только для просмотра.</p><p>Продлить: <a href="${appUrl('/app/billing')}">${appUrl('/app/billing')}</a></p>`,
         );
         sent += 1;
       }

@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
+import { appUrl } from '../common/app-url';
 import { Mailer } from '../common/mailer';
 import { PrismaService } from '../common/prisma.service';
 import { LimitsService } from '../subscription/limits.service';
@@ -23,7 +24,7 @@ export class EmployeesService {
     await this.prisma.emailToken.create({
       data: { kind: 'INVITE', email, orgId, role, tokenHash: sha256(token), expiresAt: new Date(Date.now() + 7 * 86_400_000) },
     });
-    await this.mailer.send(email, 'Приглашение в CarpetLAB', `<p>Вас пригласили в CarpetLAB. Перейдите по ссылке: /accept-invite?token=${token}</p>`);
+    await this.mailer.send(email, 'Приглашение в CarpetLAB', `<p>Вас пригласили в CarpetLAB. Примите приглашение: <a href="${appUrl(`/accept-invite?token=${token}`)}">${appUrl(`/accept-invite?token=${token}`)}</a></p>`);
   }
 
   async list(orgId: string): Promise<{ members: { id: string; userId: string; email: string; role: Role }[]; pendingInvites: { email: string; role: Role | null }[] }> {

@@ -39,4 +39,28 @@ describe('CutPlanSvg', () => {
     const { container } = render(<CutPlanSvg plan={two} rollWidthCm={150} rollLengthCm={2500} />);
     expect(container.querySelectorAll('svg')).toHaveLength(2);
   });
+
+  it('never draws a label wider than its rectangle: it shrinks the font, shortens the text, or drops it', () => {
+    const narrow = {
+      feasible: true, shortfall: [],
+      placements: [
+        { sourceId: 'r#0', sizeId: 'a', xCm: 0, yCm: 0, widthCm: 150, lengthCm: 150 },   // 60 units: needs a smaller font
+        { sourceId: 'r#0', sizeId: 'b', xCm: 0, yCm: 150, widthCm: 150, lengthCm: 20 },  // 8 units: too narrow for any label
+      ],
+      remnants: [{ sourceId: 'r#0', widthCm: 150, lengthCm: 200, xCm: 0, yCm: 170 }],  // 80 units: "обрезок 150×200" does not fit, "150×200" does
+    };
+    const { container } = render(<CutPlanSvg plan={narrow} rollWidthCm={150} rollLengthCm={2500} />);
+    const labels = [...container.querySelectorAll('svg text:not(.scale)')].filter((t) => t.textContent);
+    const widthOf = (text: Element): number => {
+      const fs = Number((text as SVGElement).style.fontSize.replace('px', '')) || 17;
+      return (text.textContent ?? '').length * fs * 0.6;
+    };
+    const rects = [...container.querySelectorAll('rect.piece')];
+    expect(labels.length).toBe(2); // the 20 cm piece has no label
+    expect(labels[0].textContent).toBe('150×150');
+    expect(widthOf(labels[0])).toBeLessThanOrEqual(Number(rects[0].getAttribute('width')));
+    expect(labels[1].textContent).toBe('150×200'); // shortened remnant label
+    expect(widthOf(labels[1])).toBeLessThanOrEqual(Number(rects[2].getAttribute('width')));
+  });
 });
+
