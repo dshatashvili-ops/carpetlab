@@ -3,7 +3,7 @@ import { Request } from 'express';
 import { SubscriptionService } from './subscription.service';
 
 const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
-const ALWAYS_OPEN = ['/api/auth/', '/api/billing/', '/api/admin/'];
+const ALWAYS_OPEN = ['/api/auth/', '/api/billing/', '/api/admin/', '/api/cuts/calculate'];
 
 /** Read-only mode: after the subscription ends every write except auth/billing/admin is refused with 402. */
 @Injectable()
