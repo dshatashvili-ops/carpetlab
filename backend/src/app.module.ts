@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { CatalogModule } from './catalog/catalog.module';
@@ -10,5 +11,5 @@ import { OrgsModule } from './orgs/orgs.module';
 import { CommonModule } from './common/common.module';
 import { HealthController } from './health.controller';
 
-@Module({ imports: [CommonModule, AuthModule, SubscriptionModule, OrgsModule, StockModule, CatalogModule, CuttingModule, DocumentsModule, BarcodesModule], controllers: [HealthController] })
+@Module({ imports: [ScheduleModule.forRoot(), CommonModule, AuthModule, SubscriptionModule, OrgsModule, StockModule, CatalogModule, CuttingModule, DocumentsModule, BarcodesModule], controllers: [HealthController] })
 export class AppModule {}
