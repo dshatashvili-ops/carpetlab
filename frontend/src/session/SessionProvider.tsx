@@ -2,7 +2,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { apiFetch, ApiError } from '../api/client';
 
 export type Role = 'OWNER' | 'OPERATOR' | 'CUTTER';
-export interface SessionUser { userId: string; orgId: string; role: Role; emailVerified: boolean }
+export interface SessionUser { userId: string; orgId: string; role: Role; emailVerified: boolean; isServiceAdmin?: boolean }
 export interface SubscriptionInfo {
   status: 'TRIAL' | 'ACTIVE' | 'EXPIRED'; plan: number; expiresAt: string; daysLeft: number;
   noticeBanner: { level: 'info' | 'warning' | 'expired'; daysLeft: number } | null;

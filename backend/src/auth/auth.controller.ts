@@ -44,8 +44,8 @@ export class AuthController {
   }
 
   @Get('me')
-  me(@Req() req: Request): { userId: string; orgId: string; role: string; emailVerified: boolean } {
-    const { userId, orgId, role, emailVerified } = req.auth!;
-    return { userId, orgId, role, emailVerified };
+  me(@Req() req: Request): { userId: string; orgId: string; role: string; emailVerified: boolean; isServiceAdmin: boolean } {
+    const { userId, orgId, role, emailVerified, isServiceAdmin } = req.auth!;
+    return { userId, orgId, role, emailVerified, isServiceAdmin };
   }
 }

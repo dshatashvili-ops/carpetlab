@@ -4,7 +4,12 @@ import { setUnauthorizedHandler } from './api/client';
 import { Layout } from './components/Layout';
 import { AppLayout } from './components/AppLayout';
 import { AppHome } from './pages/AppHome';
+import { AcceptInvite } from './pages/AcceptInvite';
+import { Admin } from './pages/Admin';
 import { Articles } from './pages/Articles';
+import { Billing } from './pages/Billing';
+import { Employees } from './pages/Employees';
+import { OrgSettings } from './pages/OrgSettings';
 import { Cutting } from './pages/Cutting';
 import { DocumentView } from './pages/DocumentView';
 import { Documents } from './pages/Documents';
@@ -24,6 +29,11 @@ function Protected({ children }: { children: JSX.Element }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
+function ServiceAdminOnly({ children }: { children: JSX.Element }) {
+  const { user } = useSession();
+  return user?.isServiceAdmin ? children : <p className="section">Нет доступа.</p>;
+}
+
 function UnauthorizedRedirect() {
   const navigate = useNavigate();
   useEffect(() => { setUnauthorizedHandler(() => navigate('/login')); return () => setUnauthorizedHandler(null); }, [navigate]);
@@ -41,6 +51,7 @@ export function AppRoutes() {
           <Route path="/demo" element={<Demo />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/accept-invite" element={<AcceptInvite />} />
         </Route>
         <Route path="/app" element={<Protected><AppLayout /></Protected>}>
           <Route index element={<AppHome />} />
@@ -51,6 +62,10 @@ export function AppRoutes() {
           <Route path="documents" element={<Documents />} />
           <Route path="documents/:id" element={<DocumentView />} />
           <Route path="problems" element={<Problems />} />
+          <Route path="billing" element={<Billing />} />
+          <Route path="employees" element={<Employees />} />
+          <Route path="settings" element={<OrgSettings />} />
+          <Route path="admin" element={<ServiceAdminOnly><Admin /></ServiceAdminOnly>} />
         </Route>
       </Routes>
     </SessionProvider>

@@ -56,7 +56,7 @@ describe('auth', () => {
     expect(login.status).toBe(200);
     const me = await request(app.getHttpServer()).get('/api/auth/me').set('Cookie', login.headers['set-cookie']);
     expect(me.status).toBe(200);
-    expect(me.body).toMatchObject({ role: 'OWNER', emailVerified: false });
+    expect(me.body).toMatchObject({ role: 'OWNER', emailVerified: false, isServiceAdmin: false });
   });
 
   it('GET /verify marks the e-mail as verified', async () => {

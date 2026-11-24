@@ -3,13 +3,17 @@ import { useEffect, useState } from 'react';
 import { onSubscriptionExpired } from '../api/client';
 import { Role, useSession } from '../session/SessionProvider';
 
-const NAV: { to: string; label: string; roles?: Role[] }[] = [
+const NAV: { to: string; label: string; roles?: Role[]; serviceAdmin?: boolean }[] = [
   { to: '/app/articles', label: 'Артикулы' },
   { to: '/app/sizes', label: 'Размеры' },
   { to: '/app/stock', label: 'Склад' },
   { to: '/app/cutting', label: 'Раскрой' },
   { to: '/app/documents', label: 'Документы' },
   { to: '/app/problems', label: 'Проблемные остатки' },
+  { to: '/app/employees', label: 'Сотрудники', roles: ['OWNER'] },
+  { to: '/app/billing', label: 'Подписка', roles: ['OWNER'] },
+  { to: '/app/settings', label: 'Настройки', roles: ['OWNER'] },
+  { to: '/app/admin', label: 'Админ', serviceAdmin: true },
 ];
 
 export function AppLayout() {
@@ -24,7 +28,7 @@ export function AppLayout() {
       <aside className="app-side">
         <NavLink to="/" className="logo">Carpet<b>LAB</b></NavLink>
         <nav aria-label="Разделы кабинета">
-          {NAV.filter((n) => !n.roles || (user && n.roles.includes(user.role))).map((n) => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}
+          {NAV.filter((n) => (n.serviceAdmin ? !!user?.isServiceAdmin : !n.roles || (user && n.roles.includes(user.role)))).map((n) => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}
         </nav>
         <button className="btn ghost" type="button" onClick={async () => { await logout(); navigate('/'); }}>Выйти</button>
       </aside>
