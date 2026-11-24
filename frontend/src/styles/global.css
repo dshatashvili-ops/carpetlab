@@ -53,3 +53,5 @@ table.data th { font-weight: 600; color: var(--muted); }
 .banner { padding: 10px 14px; margin-top: 12px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--panel); }
 .banner.warning { border-color: var(--warn); } .banner.expired { border-color: var(--accent); }
 @media (max-width: 760px) { .app-shell { grid-template-columns: 1fr; } .app-side { flex-direction: row; flex-wrap: wrap; align-items: center; } .app-side nav { display: flex; flex-wrap: wrap; } }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 6px 10px; cursor: pointer; }
+fieldset.panel legend { padding-inline: 6px; color: var(--muted); }

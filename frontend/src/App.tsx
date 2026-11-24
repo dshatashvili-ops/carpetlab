@@ -5,6 +5,7 @@ import { Layout } from './components/Layout';
 import { AppLayout } from './components/AppLayout';
 import { AppHome } from './pages/AppHome';
 import { Articles } from './pages/Articles';
+import { Cutting } from './pages/Cutting';
 import { Sizes } from './pages/Sizes';
 import { Stock } from './pages/Stock';
 import { Demo } from './pages/Demo';
@@ -43,6 +44,7 @@ export function AppRoutes() {
           <Route path="articles" element={<Articles />} />
           <Route path="sizes" element={<Sizes />} />
           <Route path="stock" element={<Stock />} />
+          <Route path="cutting" element={<Cutting />} />
         </Route>
       </Routes>
     </SessionProvider>
