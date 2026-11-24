@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  OPERATOR
+  CUTTER
+}
+enum CutMode {
+  LINEAR
+  ANY
+}
+enum SubStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+}
+enum MaterialKind {
+  ROLL
+  REMNANT
+}
+enum ItemType {
+  MATERIAL
+  CARPET
+}
+enum MovementKind {
+  RECEIPT
+  CUT_CONSUME
+  CUT_OUTPUT
+  MANUAL_WRITE_OFF
+  MANUAL_RECEIPT
+  EDIT_REVERSAL
+}
+enum DocStatus {
+  DONE
+  CANCELLED
+}
+enum PaymentMethod {
+  YOOKASSA
+  INVOICE
+}
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  CANCELED
+}
+enum NoticeKind {
+  D30
+  D15
+  D7
+  D6
+  D5
+  D4
+  D3
+  D2
+  D1
+}
+
+// ---- global (no RLS) ----
+model Organization {
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String
+  gsPrefix          String?
+  minRemnantSideCm  Int      @default(30)
+  labelWidthMm      Int      @default(58)
+  labelHeightMm     Int      @default(40)
+  createdAt         DateTime @default(now())
+  memberships       Membership[]
+}
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  email           String    @unique
+  passwordHash    String
+  emailVerifiedAt DateTime?
+  isServiceAdmin  Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  memberships     Membership[]
+}
+
+model Membership {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  orgId  String @db.Uuid
+  role   Role
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  @@unique([userId, orgId])
+}
+
+model Session {
+  id        String   @id            // sha256 of the cookie token
+  userId    String   @db.Uuid
+  orgId     String   @db.Uuid
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model EmailToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  kind      String                     // VERIFY | INVITE
+  email     String
+  userId    String?   @db.Uuid
+  orgId     String?   @db.Uuid
+  role      Role?
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+}
+
+model Subscription {
+  id        String    @id @default(uuid()) @db.Uuid
+  orgId     String    @unique @db.Uuid
+  plan      Int       @default(1)
+  status    SubStatus @default(TRIAL)
+  expiresAt DateTime
+}
+
+model TariffPrice {
+  id            String @id @default(uuid()) @db.Uuid
+  plan          Int
+  months        Int
+  priceKopecks  Int
+  @@unique([plan, months])
+}
+
+model Payment {
+  id          String        @id @default(uuid()) @db.Uuid
+  orgId       String        @db.Uuid
+  method      PaymentMethod
+  plan        Int
+  months      Int
+  amountKopecks Int
+  status      PaymentStatus @default(PENDING)
+  externalId  String?       @unique
+  appliedAt   DateTime?
+  createdAt   DateTime      @default(now())
+}
+
+model SubscriptionNotice {
+  id        String     @id @default(uuid()) @db.Uuid
+  orgId     String     @db.Uuid
+  kind      NoticeKind
+  expiresAt DateTime
+  sentAt    DateTime   @default(now())
+  @@unique([orgId, kind, expiresAt])
+}
+
+// ---- tenant tables (RLS on "orgId") ----
+model Article {
+  id             String   @id @default(uuid()) @db.Uuid
+  orgId          String   @db.Uuid
+  code           String
+  name           String
+  rollWidthCm    Int
+  cutMode        CutMode
+  barcodeEnabled Boolean  @default(false)
+  extra          Json     @default("{}")
+  photoKey       String?
+  photoBytes     Int      @default(0)
+  createdAt      DateTime @default(now())
+  @@unique([orgId, code])
+}
+
+model SizeTemplate {
+  id        String @id @default(uuid()) @db.Uuid
+  orgId     String @db.Uuid
+  widthCm   Int
+  lengthCm  Int
+  @@unique([orgId, widthCm, lengthCm])
+}
+
+model Material {
+  id         String       @id @default(uuid()) @db.Uuid
+  orgId      String       @db.Uuid
+  articleId  String       @db.Uuid
+  widthCm    Int
+  lengthCm   Int
+  kind       MaterialKind
+  createdAt  DateTime     @default(now())
+}
+
+model Sku {
+  id        String  @id @default(uuid()) @db.Uuid
+  orgId     String  @db.Uuid
+  articleId String  @db.Uuid
+  sizeId    String  @db.Uuid
+  ean13     String?
+  @@unique([articleId, sizeId])
+  @@unique([orgId, ean13])
+}
+
+model StockMovement {
+  id         String       @id @default(uuid()) @db.Uuid
+  orgId      String       @db.Uuid
+  kind       MovementKind
+  itemType   ItemType
+  materialId String?      @db.Uuid
+  skuId      String?      @db.Uuid
+  qtyDelta   Int
+  documentId String?      @db.Uuid
+  reason     String?
+  userId     String       @db.Uuid
+  createdAt  DateTime     @default(now())
+  @@index([orgId, materialId])
+  @@index([orgId, skuId])
+}
+
+model CutDocument {
+  id        String    @id @default(uuid()) @db.Uuid
+  orgId     String    @db.Uuid
+  number    Int
+  articleId String    @db.Uuid
+  status    DocStatus @default(DONE)
+  version   Int       @default(1)
+  createdBy String    @db.Uuid
+  createdAt DateTime  @default(now())
+  @@unique([orgId, number])
+}
+
+model CutDocumentLine {
+  id               String @id @default(uuid()) @db.Uuid
+  orgId            String @db.Uuid
+  documentId       String @db.Uuid
+  sourceMaterialId String @db.Uuid
+  sizeId           String @db.Uuid
+  qty              Int
+}
+
+model CutDocumentVersion {
+  id         String   @id @default(uuid()) @db.Uuid
+  orgId      String   @db.Uuid
+  documentId String   @db.Uuid
+  version    Int
+  snapshot   Json
+  editedBy   String   @db.Uuid
+  reason     String
+  createdAt  DateTime @default(now())
+  @@unique([documentId, version])
+}
+
+model BarcodeSequence {
+  id         String @id @default(uuid()) @db.Uuid
+  orgId      String @unique @db.Uuid
+  nextNumber Int    @default(1)
+}
+
+model DocCounter {
+  id    String @id @default(uuid()) @db.Uuid
+  orgId String @unique @db.Uuid
+  next  Int    @default(1)
+}
