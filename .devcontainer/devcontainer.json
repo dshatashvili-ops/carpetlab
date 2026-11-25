@@ -1,0 +1,7 @@
+{
+  "name": "CarpetLAB",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "postCreateCommand": "bash scripts/dev-setup.sh",
+  "forwardPorts": [5173, 3000],
+  "portsAttributes": { "5173": { "label": "CarpetLAB (сайт)", "onAutoForward": "openBrowser" } }
+}
