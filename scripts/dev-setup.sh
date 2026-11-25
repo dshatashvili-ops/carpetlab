@@ -10,11 +10,13 @@ if ! command -v psql >/dev/null 2>&1 || ! ls /usr/lib/postgresql/*/bin/postgres 
   $SUDO apt-get update -qq && $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql postgresql-client
 fi
 $SUDO service postgresql start >/dev/null 2>&1 || $SUDO pg_ctlcluster "$(ls /usr/lib/postgresql | tail -1)" main start || true
-for i in $(seq 1 30); do $SUDO -u postgres psql -qAtc 'select 1' >/dev/null 2>&1 && break || sleep 1; done
+# wait (max 60 s) until the server accepts connections; pg_isready never blocks, unlike a bare psql
+for i in $(seq 1 60); do pg_isready -q -h /var/run/postgresql && break; sleep 1; done
+pg_isready -h /var/run/postgresql || { echo 'PostgreSQL did not start' >&2; exit 1; }
 
 # run "<sql>": executes SQL as the postgres superuser, reading it from stdin (no shell-quoting of $$ blocks)
 if [ -z "$SUDO" ]; then PSQL=(su postgres -c "psql -v ON_ERROR_STOP=1 -qAt"); else PSQL=(sudo -u postgres psql -v ON_ERROR_STOP=1 -qAt); fi
-run() { printf '%s\n' "$1" | "${PSQL[@]}"; }
+run() { printf '%s\n' "$1" | timeout 60 "${PSQL[@]}"; }
 run 'DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='"'"'carpet_admin'"'"') THEN CREATE ROLE carpet_admin LOGIN SUPERUSER PASSWORD '"'"'carpet'"'"'; END IF; END $$;'
 run 'DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='"'"'carpet_app'"'"') THEN CREATE ROLE carpet_app LOGIN NOBYPASSRLS PASSWORD '"'"'carpet'"'"'; END IF; END $$;'
 [ "$(run "SELECT 1 FROM pg_database WHERE datname='$DB'")" = "1" ] || run "CREATE DATABASE \"$DB\" OWNER carpet_admin"
