@@ -4,7 +4,8 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DB="${DB_NAME:-carpetlab}"
-SUDO=""; [ "$(id -u)" = 0 ] || SUDO="sudo"
+# -n: never ask for a password (fail instead of hanging); root-level sudo is passwordless in Codespaces, "sudo -u <other user>" is not
+SUDO=""; [ "$(id -u)" = 0 ] || SUDO="sudo -n"
 
 if ! command -v psql >/dev/null 2>&1 || ! ls /usr/lib/postgresql/*/bin/postgres >/dev/null 2>&1; then
   $SUDO apt-get update -qq && $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql postgresql-client
@@ -14,16 +15,18 @@ $SUDO service postgresql start >/dev/null 2>&1 || $SUDO pg_ctlcluster "$(ls /usr
 for i in $(seq 1 60); do pg_isready -q -h /var/run/postgresql && break; sleep 1; done
 pg_isready -h /var/run/postgresql || { echo 'PostgreSQL did not start' >&2; exit 1; }
 
-# run "<sql>": executes SQL as the postgres superuser, reading it from stdin (no shell-quoting of $$ blocks)
-if [ -z "$SUDO" ]; then PSQL=(su postgres -c "psql -v ON_ERROR_STOP=1 -qAt"); else PSQL=(sudo -u postgres psql -v ON_ERROR_STOP=1 -qAt); fi
-run() { printf '%s\n' "$1" | timeout 60 "${PSQL[@]}"; }
+# run "<sql>": executes SQL as the postgres superuser, reading it from stdin (no shell-quoting of $$ blocks).
+# runuser (started as root) drops to the postgres user without any password prompt.
+run() { printf '%s\n' "$1" | ( cd / && $SUDO runuser -u postgres -- psql -v ON_ERROR_STOP=1 -qAt ); }
 run 'DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='"'"'carpet_admin'"'"') THEN CREATE ROLE carpet_admin LOGIN SUPERUSER PASSWORD '"'"'carpet'"'"'; END IF; END $$;'
 run 'DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='"'"'carpet_app'"'"') THEN CREATE ROLE carpet_app LOGIN NOBYPASSRLS PASSWORD '"'"'carpet'"'"'; END IF; END $$;'
 [ "$(run "SELECT 1 FROM pg_database WHERE datname='$DB'")" = "1" ] || run "CREATE DATABASE \"$DB\" OWNER carpet_admin"
 
 export DATABASE_ADMIN_URL="postgresql://carpet_admin:carpet@localhost:5432/$DB"
+if [ -z "${SKIP_DEPS:-}" ]; then
 ( cd "$ROOT/backend" && npm install --no-audit --no-fund && DATABASE_URL="$DATABASE_ADMIN_URL" npx prisma generate && DATABASE_URL="$DATABASE_ADMIN_URL" npx prisma migrate deploy )
 ( cd "$ROOT/frontend" && npm install --no-audit --no-fund )
+fi
 
 # Demo tariff prices so the "Подписка" screen has something to show (kopecks). Safe to re-run.
 PGPASSWORD=carpet psql "$DATABASE_ADMIN_URL" -v ON_ERROR_STOP=1 -q <<'SQL'
