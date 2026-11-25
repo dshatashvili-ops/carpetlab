@@ -1,4 +1,5 @@
-# Production stack. Секреты берутся из deploy/.env (не коммитится). Образы в этом репозитории не собирались в CI: проверьте сборку при первом деплое.
+# Production stack. Секреты берутся из deploy/.env (не коммитится).
+# Образы не собирались в CI и не запускались при разработке: проверьте сборку при первом деплое.
 services:
   db:
     image: postgres:16
@@ -7,6 +8,8 @@ services:
       POSTGRES_USER: carpet_admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: carpetlab
+    # Доступен только с самого сервера: так работает cron-задание deploy/backup.sh
+    ports: ["127.0.0.1:5432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
       - walarchive:/wal
@@ -16,16 +19,35 @@ services:
       interval: 5s
       retries: 20
 
-  migrate:
-    build: ../backend
-    command: >
-      sh -c "npx prisma migrate deploy &&
-             psql \"$$DATABASE_ADMIN_URL\" -c \"DO \\$$\\$$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='carpet_app') THEN CREATE ROLE carpet_app LOGIN NOBYPASSRLS PASSWORD '${APP_DB_PASSWORD}'; END IF; END \\$$\\$$;\""
+  # Порядок важен: роль -> миграции -> права (права выдаются на уже созданные таблицы).
+  init-roles:
+    image: postgres:16
+    user: root
+    entrypoint: ["/bin/sh", "/init-roles.sh"]
     environment:
-      DATABASE_URL: postgresql://carpet_admin:${POSTGRES_PASSWORD}@db:5432/carpetlab
-      DATABASE_ADMIN_URL: postgresql://carpet_admin:${POSTGRES_PASSWORD}@db:5432/carpetlab
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+    volumes:
+      - ./init-roles.sh:/init-roles.sh:ro
+      - walarchive:/wal
     depends_on:
       db: { condition: service_healthy }
+
+  migrate:
+    build: ../backend
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://carpet_admin:${POSTGRES_PASSWORD}@db:5432/carpetlab
+    depends_on:
+      init-roles: { condition: service_completed_successfully }
+
+  grants:
+    image: postgres:16
+    command: ["psql", "postgresql://carpet_admin:${POSTGRES_PASSWORD}@db:5432/carpetlab", "-v", "ON_ERROR_STOP=1", "-f", "/grants.sql"]
+    volumes:
+      - ./grants.sql:/grants.sql:ro
+    depends_on:
+      migrate: { condition: service_completed_successfully }
 
   backend:
     build: ../backend
@@ -42,7 +64,7 @@ services:
     volumes:
       - storage:/data/storage
     depends_on:
-      migrate: { condition: service_completed_successfully }
+      grants: { condition: service_completed_successfully }
 
   web:
     build: ../frontend

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { appUrl } from '../../common/app-url';
 import { PrismaService } from '../../common/prisma.service';
@@ -33,6 +33,10 @@ export class BillingService {
     if (method !== 'YOOKASSA' && method !== 'INVOICE') throw new BadRequestException('Способ оплаты: YOOKASSA или INVOICE');
     const price = await this.prisma.tariffPrice.findUnique({ where: { plan_months: { plan: plan!, months: months! } } });
     if (!price) throw new BadRequestException({ code: 'PRICE_NOT_SET', message: 'Цена для этого тарифа и срока пока не задана' });
+    const current = await this.prisma.subscription.findUnique({ where: { orgId } });
+    if (current && current.status === 'ACTIVE' && current.expiresAt > new Date() && current.plan !== plan) {
+      throw new ConflictException({ code: 'PLAN_CHANGE_NOT_ALLOWED', message: `Сейчас действует тариф ${current.plan}. Сменить тариф можно после окончания оплаченного срока, а продлить текущий можно в любой момент.` });
+    }
     const description = `CarpetLAB, тариф ${plan}, ${months} мес.`;
     const payment = await this.prisma.payment.create({ data: { orgId, method, plan: plan!, months: months!, amountKopecks: price.priceKopecks } });
     if (method === 'INVOICE') {

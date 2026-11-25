@@ -21,7 +21,7 @@ deploy/verify-restore.sh /var/backups/carpetlab/carpetlab-YYYYmmdd-HHMMSS.dump
    psql "$DATABASE_ADMIN_URL_POSTGRES" -c "DROP DATABASE carpetlab" -c "CREATE DATABASE carpetlab"
    pg_restore --no-owner --dbname="$DATABASE_ADMIN_URL" /var/backups/carpetlab/carpetlab-….dump
    ```
-3. Запустить сервис: `docker compose … up -d` (сервис `migrate` дозаполнит недостающие миграции и права роли `carpet_app`).
+3. Запустить сервис: `docker compose … up -d` (сервисы `init-roles`, `migrate`, `grants` по очереди создадут роль `carpet_app`, применят недостающие миграции и выдадут права).
 4. Проверить вход, остатки и последний документ раскроя.
 
 ## Восстановление на момент времени (PITR)

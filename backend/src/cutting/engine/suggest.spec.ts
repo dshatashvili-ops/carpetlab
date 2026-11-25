@@ -30,4 +30,13 @@ describe('suggestQuantities', () => {
     expect(plan('ANY', [roll(), roll('r2')], result, 30).feasible).toBe(true);
     expect(result.every((r) => r.qty > 0)).toBe(true);
   });
+
+  it('stops within its time budget on a big stock and still returns a feasible suggestion', () => {
+    const many = Array.from({ length: 30 }, (_, i) => roll(`r${i}`, 400, 3000));
+    const started = Date.now();
+    const result = suggestQuantities(many, [size('a', 100, 150), size('b', 70, 130), size('c', 120, 90)], 'ANY', 30, 100);
+    expect(Date.now() - started).toBeLessThan(1500);
+    expect(plan('ANY', many, result, 30).feasible).toBe(true);
+  });
 });
+

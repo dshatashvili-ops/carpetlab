@@ -12,27 +12,32 @@ export function plan(mode: CutMode, sources: Source[], requests: Request[], minR
 }
 
 const MAX_PIECES = 2000;
+const DEFAULT_BUDGET_MS = 1500;
 
 /**
  * Proposes quantities so that counts never differ by more than 1: the size with the fewest pieces gets the next one
  * (bigger carpets first on ties); it stops when none of the smallest-count sizes fits. Sizes that cannot be cut even once get 0.
+ * It also stops when `budgetMs` has elapsed and returns what it has so far (always a feasible set), so a huge stock cannot hold the server.
  */
 export function suggestQuantities(
   sources: Source[],
   sizes: Omit<Request, 'qty'>[],
   mode: CutMode,
   minRemnantSideCm: number,
+  budgetMs = DEFAULT_BUDGET_MS,
 ): Request[] {
+  const deadline = Date.now() + budgetMs;
   const reqs: Request[] = sizes.map((s) => ({ ...s, qty: 0 }));
   const fits = (): boolean => plan(mode, sources, reqs, minRemnantSideCm).feasible;
   const active = reqs.filter((r) => {
+    if (Date.now() > deadline) return false;
     r.qty = 1;
     const ok = fits();
     r.qty = 0;
     return ok;
   });
 
-  for (let total = 0; total < MAX_PIECES; total++) {
+  for (let total = 0; total < MAX_PIECES && Date.now() <= deadline; total++) {
     const lowest = Math.min(...active.map((r) => r.qty));
     const candidates = active
       .filter((r) => r.qty === lowest)

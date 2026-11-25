@@ -11,6 +11,9 @@ export type CutPlan = {
 };
 export type CutMode = 'LINEAR' | 'ANY';
 
+/** Upper bound of pieces in one plan: the planner is synchronous, so unbounded input would freeze the API for everyone. */
+export const MAX_PIECES_PER_PLAN = 5000;
+
 const isPosInt = (n: number): boolean => Number.isInteger(n) && n > 0;
 
 /** Throws RangeError for input the engine cannot reason about. Zero quantities are allowed (ignored). */
@@ -23,6 +26,7 @@ export function validateInput(sources: Source[], requests: Request[], minRemnant
     if (!isPosInt(r.widthCm) || !isPosInt(r.lengthCm)) throw new RangeError(`request ${r.sizeId}: sizes must be positive integers`);
     if (!Number.isInteger(r.qty) || r.qty < 0) throw new RangeError(`request ${r.sizeId}: qty must be a non-negative integer`);
   }
+  if (requests.reduce((a, r) => a + r.qty, 0) > MAX_PIECES_PER_PLAN) throw new RangeError(`at most ${MAX_PIECES_PER_PLAN} pieces per plan`);
 }
 
 /** Remnants are used before rolls (to avoid piling up offcuts); smaller first; ties by id for determinism. */

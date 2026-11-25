@@ -97,22 +97,26 @@ export class DocumentsService {
         tx.material.findMany({ where: { articleId: d.articleId } }),
         tx.stockMovement.findMany({ where: { documentId: id } }),
       ]);
-      const skus = await tx.sku.findMany({ where: { id: { in: moves.filter((m) => m.skuId).map((m) => m.skuId!) } } });
+      // After an edit the movements are netted deltas, so the current outputs/remnants live in the newest history snapshot.
+      const last = d.version > 1 ? await tx.cutDocumentVersion.findFirst({ where: { documentId: id }, orderBy: { version: 'desc' } }) : null;
+      const state = last ? (last.snapshot as unknown as { after: { outputs: { skuId: string; sizeId: string; widthCm: number; lengthCm: number; qty: number }[]; remnants: { materialId: string; widthCm: number; lengthCm: number; qty: number }[] } }).after : null;
+      const skuIds = [...moves.filter((m) => m.skuId).map((m) => m.skuId!), ...(state?.outputs.map((o) => o.skuId) ?? [])];
+      const skus = await tx.sku.findMany({ where: { id: { in: skuIds } } });
       const skuSizes = await tx.sizeTemplate.findMany({ where: { id: { in: skus.map((s) => s.sizeId) } } });
-      return { d, article, lines, sizes, mats, moves, skus, skuSizes };
+      return { d, article, lines, sizes, mats, moves, skus, skuSizes, state };
     });
-    const { d, article, lines, sizes, mats, moves, skus, skuSizes } = data;
+    const { d, article, lines, sizes, mats, moves, skus, skuSizes, state } = data;
     return {
       id: d.id, number: d.number, status: d.status, version: d.version, articleId: d.articleId, articleCode: article.code, articleName: article.name, createdAt: d.createdAt,
       lines: lines.map((l) => {
         const size = sizes.find((s) => s.id === l.sizeId)!; const src = mats.find((m) => m.id === l.sourceMaterialId)!;
         return { sourceMaterialId: l.sourceMaterialId, sourceKind: src.kind, sourceWidthCm: src.widthCm, sourceLengthCm: src.lengthCm, sizeId: l.sizeId, sizeWidthCm: size.widthCm, sizeLengthCm: size.lengthCm, qty: l.qty };
       }),
-      outputs: moves.filter((m) => m.kind === 'CUT_OUTPUT').map((m) => {
+      outputs: state ? state.outputs.map((o) => ({ skuId: o.skuId, ean13: skus.find((k) => k.id === o.skuId)?.ean13 ?? null, widthCm: o.widthCm, lengthCm: o.lengthCm, qty: o.qty })) : moves.filter((m) => m.kind === 'CUT_OUTPUT').map((m) => {
         const sku = skus.find((s) => s.id === m.skuId)!; const size = skuSizes.find((s) => s.id === sku.sizeId)!;
         return { skuId: sku.id, ean13: sku.ean13, widthCm: size.widthCm, lengthCm: size.lengthCm, qty: m.qtyDelta };
       }),
-      remnants: moves.filter((m) => m.kind === 'RECEIPT').map((m) => {
+      remnants: state ? state.remnants : moves.filter((m) => m.kind === 'RECEIPT').map((m) => {
         const mat = mats.find((x) => x.id === m.materialId)!;
         return { materialId: mat.id, widthCm: mat.widthCm, lengthCm: mat.lengthCm, qty: m.qtyDelta };
       }),

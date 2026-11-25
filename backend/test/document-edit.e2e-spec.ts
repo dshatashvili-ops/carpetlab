@@ -89,4 +89,24 @@ describe('cut documents: edit in place', () => {
     await admin.subscription.update({ where: { orgId }, data: { expiresAt: new Date(Date.now() - 86_400_000) } });
     expect((await edit(doc.id, { reason: 'r', lines: [{ sourceMaterialId: rollMaterialId, sizeId: sz['150x200'], qty: 4 }] })).status).toBe(402);
   });
+
+  it('after an edit, GET /api/cuts/:id shows the corrected carpets and remnants, not the originals', async () => {
+    const doc = (await exec({ '150x200': 5 })).body; // 5 carpets + a 150×1500 remnant
+    await edit(doc.id, { reason: 'Один в брак, обрезка нет', lines: [{ sourceMaterialId: rollMaterialId, sizeId: sz['150x200'], qty: 4 }], remnants: [] }).expect(200);
+    const detail = (await api().get(`/api/cuts/${doc.id}`).set('Cookie', owner)).body;
+    expect(detail.version).toBe(2);
+    expect(detail.outputs).toEqual([expect.objectContaining({ widthCm: 150, lengthCm: 200, qty: 4 })]);
+    expect(detail.remnants).toEqual([]);
+    expect(detail.lines.map((l: { qty: number }) => l.qty)).toEqual([4]);
+  });
+
+  it('a second edit starts from the corrected state: no phantom remnant comes back', async () => {
+    const doc = (await exec({ '150x200': 5 })).body;
+    await edit(doc.id, { reason: 'r1', lines: [{ sourceMaterialId: rollMaterialId, sizeId: sz['150x200'], qty: 5 }], remnants: [] }).expect(200);
+    const detail = (await api().get(`/api/cuts/${doc.id}`).set('Cookie', owner)).body;
+    // the UI seeds its form from this state; saving it unchanged must not create any remnant
+    await edit(doc.id, { reason: 'r2', lines: detail.lines.map((l: { sourceMaterialId: string; sizeId: string; qty: number }) => ({ sourceMaterialId: l.sourceMaterialId, sizeId: l.sizeId, qty: l.qty })), remnants: detail.remnants }).expect(200);
+    expect((await materials()).filter((m) => m.kind === 'REMNANT')).toEqual([]);
+  });
 });
+

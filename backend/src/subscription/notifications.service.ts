@@ -49,12 +49,16 @@ export class NotificationsService {
       const owners = await this.prisma.membership.findMany({ where: { orgId: sub.orgId, role: 'OWNER' }, include: { user: true } });
       for (const o of owners) {
         const trial = sub.status === 'TRIAL';
-        await this.mailer.send(
+        try {
+          await this.mailer.send(
           o.user.email,
           `${trial ? 'Пробный период' : 'Подписка'} CarpetLAB заканчивается через ${left} дн.`,
           `<p>${trial ? 'Пробный период' : 'Подписка'} заканчивается ${sub.expiresAt.toLocaleDateString('ru-RU')}. После этого данные останутся, но будут доступны только для просмотра.</p><p>Продлить: <a href="${appUrl('/app/billing')}">${appUrl('/app/billing')}</a></p>`,
-        );
-        sent += 1;
+          );
+          sent += 1;
+        } catch (err) {
+          this.log.warn(`expiry notice to ${o.user.email} failed: ${(err as Error).message}`);
+        }
       }
     }
     return sent;

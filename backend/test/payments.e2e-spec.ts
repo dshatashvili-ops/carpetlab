@@ -130,4 +130,25 @@ describe('payments', () => {
     const res = await api().get('/api/billing/prices').set('Cookie', owner);
     expect(res.body).toEqual(expect.arrayContaining([{ plan: 1, months: 1, priceKopecks: 150_000 }, { plan: 2, months: 3, priceKopecks: 450_000 }]));
   });
+
+  it('while a paid subscription is active, buying a different tariff is refused (no re-pricing of the remaining term)', async () => {
+    await admin.tariffPrice.createMany({ data: [{ plan: 3, months: 1, priceKopecks: 900_000 }] });
+    await admin.subscription.update({ where: { orgId }, data: { status: 'ACTIVE', plan: 2, expiresAt: new Date(Date.now() + 300 * DAY) } });
+    for (const method of ['YOOKASSA', 'INVOICE']) {
+      const up = await checkout({ plan: 3, months: 1, method });
+      expect(up.status).toBe(409);
+      expect(up.body.code).toBe('PLAN_CHANGE_NOT_ALLOWED');
+      expect((await checkout({ plan: 1, months: 1, method })).status).toBe(409);
+    }
+    expect(await admin.payment.count()).toBe(0);
+    expect((await checkout({ plan: 2, months: 3, method: 'INVOICE' })).status).toBe(201); // extending the same tariff is fine
+  });
+
+  it('a trial or an expired subscription may pick any tariff', async () => {
+    await admin.tariffPrice.createMany({ data: [{ plan: 3, months: 1, priceKopecks: 900_000 }] });
+    expect((await checkout({ plan: 3, months: 1, method: 'INVOICE' })).status).toBe(201);
+    await admin.subscription.update({ where: { orgId }, data: { status: 'ACTIVE', plan: 2, expiresAt: new Date(Date.now() - DAY) } });
+    expect((await checkout({ plan: 3, months: 1, method: 'INVOICE' })).status).toBe(201);
+  });
 });
+

@@ -74,4 +74,11 @@ describe('planLinear', () => {
     expect(() => planLinear([roll()], [req('a', 150, 200, 1.5)], 30)).toThrow(RangeError);
     expect(() => planLinear([roll()], [req('a', 0, 200, 1)], 30)).toThrow(RangeError);
   });
+
+  it('refuses more than 5000 pieces in one plan (protects the server) but accepts exactly 5000', () => {
+    expect(() => planLinear([roll()], [req('a', 150, 200, 5001)], 30)).toThrow(RangeError);
+    expect(() => planLinear([roll()], [req('a', 150, 200, 3000), req('b', 150, 300, 2001)], 30)).toThrow(RangeError);
+    expect(planLinear([roll()], [req('a', 150, 200, 5000)], 30).feasible).toBe(false);
+  });
 });
+

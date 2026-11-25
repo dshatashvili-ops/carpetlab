@@ -87,4 +87,18 @@ describe('expiry notifications', () => {
     await setSub({ expiresAt: new Date(Date.now() - DAY) });
     expect(await banner()).toMatchObject({ level: 'expired', daysLeft: 0 });
   });
+
+  it('one owner whose address the mail server rejects does not stop reminders for the other organizations', async () => {
+    const send = mailer.send.bind(mailer);
+    mailer.send = async (to: string, subject: string, html: string) => { if (to === 'bad@example.com') throw new Error('550 mailbox unavailable'); return send(to, subject, html); };
+    const bad = await admin.user.create({ data: { email: 'bad@example.com', passwordHash: 'x' } });
+    const badOrg = await admin.organization.create({ data: { name: 'Bad' } });
+    await admin.membership.create({ data: { userId: bad.id, orgId: badOrg.id, role: 'OWNER' } });
+    await admin.subscription.create({ data: { orgId: badOrg.id, plan: 1, status: 'ACTIVE', expiresAt: EXPIRES } });
+    mailer.sent.length = 0;
+    const sent = await svc.run(daysBefore(15));
+    expect(sent).toBe(1);
+    expect(mailer.sent.map((m) => m.to)).toEqual(['owner@example.com']);
+  });
 });
+

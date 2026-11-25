@@ -77,4 +77,10 @@ describe('POST /api/cuts/calculate', () => {
     await admin.subscription.update({ where: { orgId }, data: { expiresAt: new Date(Date.now() - 86_400_000) } });
     expect((await calc({ articleId, sizeIds: [sizeIds['150x300']] })).status).toBe(201);
   });
+
+  it('an absurd quantity is rejected with 400 instead of freezing the server', async () => {
+    const res = await calc({ articleId, sizeIds: [sizeIds['150x300']], quantities: [{ sizeId: sizeIds['150x300'], qty: 2_000_000 }] });
+    expect(res.status).toBe(400);
+  });
 });
+
