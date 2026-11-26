@@ -26,7 +26,7 @@ export function AppLayout() {
   return (
     <div className="app-shell">
       <aside className="app-side">
-        <NavLink to="/" className="logo">Carpet<b>LAB</b></NavLink>
+        <NavLink to="/" className="logo"><img src="/logo-mark.svg" alt="" width="26" height="26" /><span>Carpet<b>LAB</b></span></NavLink>
         <nav aria-label="Разделы кабинета">
           {NAV.filter((n) => (n.serviceAdmin ? !!user?.isServiceAdmin : !n.roles || (user && n.roles.includes(user.role)))).map((n) => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}
         </nav>

@@ -7,7 +7,7 @@ export function Layout() {
     <div className="paper-grid" style={{ minHeight: '100vh' }}>
       <header className="site-nav">
         <div className="container">
-          <Link to="/" className="logo">Carpet<b>LAB</b></Link>
+          <Link to="/" className="logo"><img src="/logo-mark.svg" alt="" width="26" height="26" /><span>Carpet<b>LAB</b></span></Link>
           <nav className="nav-links" aria-label="Основная навигация">
             <NavLink to="/pricing">Тарифы</NavLink>
             <NavLink to="/demo">Демо</NavLink>

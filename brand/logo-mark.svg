@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CarpetLAB"><defs><clipPath id="off"><rect x="37" y="39" width="19" height="17"/></clipPath></defs><rect width="64" height="64" rx="6" fill="#12203A"/>
+  <rect x="8" y="8" width="26" height="48" fill="#5B7FB5"/>
+  <rect x="11.2" y="11.2" width="19.6" height="41.6" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.2"/><path d="M21 25 L27 32 L21 39 L15 32 Z" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="1.4"/>
+  <rect x="37" y="8" width="19" height="28" fill="#A9BDDB"/>
+  <rect x="37" y="39" width="19" height="17" fill="#D9461F"/>
+  <g clip-path="url(#off)" stroke="#fff" stroke-opacity=".55" stroke-width="1.6"><path d="M30 60 L62 28 M36 60 L68 28 M42 60 L74 28 M24 60 L56 28 M18 60 L50 28"/></g></svg>
